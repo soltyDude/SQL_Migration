@@ -11,10 +11,12 @@ import static org.example.COnection.*;
 //сорт версий
 public class App {
     public static void main(String[] args) {
-        //MigrationRunner.migrateFiles("data");
+        //MigrationLock.ensureLockTableExists();
+
+        MigrationRunner.migrateFiles("data");
         //COnection.clean();
 
-        String migrationFilePath = "data/V0_0_01__aboba.sql";
-        RollbackGenerator.generateRollback(migrationFilePath);
+        //String migrationFilePath = "data/V0_0_01__aboba.sql";
+        //RollbackGenerator.generateRollback(migrationFilePath);
     }
 }
