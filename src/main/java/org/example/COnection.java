@@ -11,7 +11,7 @@ public class COnection {
     public static final String DB_FILE_PATH = "data/mydatabase.db";
     public static final String SQL_FILE_PATH = "data/V0_0_01__aboba.sql";
 
-    public static void ensureDatabaseExists() {
+    /*public static void ensureDatabaseExists() {
         File dbFile = new File(DB_FILE_PATH);
 
         if (dbFile.exists()) {
@@ -20,7 +20,7 @@ public class COnection {
             System.out.println("Database not found. Creating a new database...");
             createDatabase();
         }
-    }
+    }*///ensure db exists
 
     private static void createDatabase() {
         String url = "jdbc:sqlite:" + DB_FILE_PATH;
@@ -34,16 +34,18 @@ public class COnection {
         }
     }
 
-    public static void importSQL(Connection conn, InputStream in, String scriptName) throws SQLException {
+    //надо чтобы он откатывал первый стэйтмент если на втором ошибка или не исполнял его
+    //возможно чтобы он весь файл исполнял одной кверей
+    public static boolean importSQL(Connection conn, InputStream in, String scriptName) throws SQLException {
         String version = extractVersionFromFileName(scriptName);
         if (version == null) {
             System.err.println("Invalid script name format. Skipping: " + scriptName);
-            return;
+            return false;
         }
 
         if (isVersionAlreadyApplied(conn, version)) {
             System.out.println("Version " + version + " already applied. Skipping: " + scriptName);
-            return;
+            return false;
         }
 
         Scanner s = new Scanner(in);
@@ -69,7 +71,9 @@ public class COnection {
                         System.out.println("sql query is not good");
                         System.out.println(ex.getResultCode());
                         //чтобы он поставил фолс
+                        //после ошибки брэйк
                         success = false;
+                        break;
                     }
                 }
             }
@@ -80,16 +84,18 @@ public class COnection {
             executionTime = (int) (System.currentTimeMillis() - startTime);
             if (st != null) st.close();
             logExecution(conn, version, scriptName, executionTime, success);
-            success = true;
         }
+        return success;
     }
 
     private static boolean isVersionAlreadyApplied(Connection conn, String version) throws SQLException {
-        String query = "SELECT COUNT(*) FROM flyway_schema_history WHERE version = ?";
-        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+        // Query to check if the version exists and was successfully applied
+        String selectCOUNT = "SELECT COUNT(*) FROM flyway_schema_history WHERE version = ? AND success = TRUE";
+
+        try (PreparedStatement pstmt = conn.prepareStatement(selectCOUNT)) {
             pstmt.setString(1, version);
             try (ResultSet rs = pstmt.executeQuery()) {
-                return rs.next() && rs.getInt(1) > 0;
+                return rs.next() && rs.getInt(1) > 0; // Returns true if the version exists and was successful
             }
         }
     }

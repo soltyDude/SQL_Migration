@@ -41,15 +41,20 @@ public class MigrationRunner {
                 System.out.println("No new migrations to apply.");
                 return;
             }
-
+            boolean success;
             // Migrate each file
             for (File file : unPushedFiles) {
                 String scriptName = file.getName();
                 System.out.println("Applying migration: " + scriptName);
 
                 try (FileInputStream in = new FileInputStream(file)) {
-                    importSQL(conn, in, scriptName);
-                    System.out.println("Migration applied successfully: " + scriptName);
+                    success = importSQL(conn, in, scriptName);
+                    if (success) {
+                        System.out.println("Migration applied successfully: " + scriptName);
+                    }else{
+                        System.out.println("oooooooops an eror");
+                        break;
+                    }
                 } catch (Exception e) {
                     System.err.println("Failed to apply migration: " + scriptName);
                     e.printStackTrace();
@@ -71,7 +76,7 @@ public class MigrationRunner {
      * @return The last version applied, or "0" if no migrations have been applied.
      */
     private static String getLastDbVersion(Connection conn) {
-        String query = "SELECT version FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 1";
+        String query = "SELECT version FROM flyway_schema_history WHERE success = TRUE ORDER BY installed_rank DESC LIMIT 1";
 
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
