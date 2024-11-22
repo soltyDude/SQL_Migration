@@ -1,4 +1,7 @@
-package org.example;
+package org.example.now;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -9,34 +12,35 @@ import java.util.regex.Pattern;
 
 public class MigrationFileReader {
 
+    private static final Logger logger = LoggerFactory.getLogger(MigrationFileReader.class); // Logger instance
+    private static final Pattern VERSION_PATTERN = Pattern.compile("^[VB](\\d+(?:_\\d+)*)(_{1,2}.*)?\\.sql$");
+
     /**
-     * Scans the given directory for SQL migration files with versions higher than the last version in the database.
+     * Finds all migration files in the specified directory that have not yet been applied to the database.
      *
-     * @param dir       The directory to scan for migration files.
-     * @param lastDbVersion The last version present in the database.
-     * @return A sorted list of SQL file paths with versions higher than the last database version.
+     * @param dir           The directory to scan for migration files.
+     * @param lastDbVersion The last applied migration version from the database.
+     * @return A sorted list of migration files with versions higher than the last database version.
      */
-    public static List<File> findUnPushed(String dir, String lastDbVersion) {
+    public static List<File> findMigrations(String dir, String lastDbVersion) {
         List<File> migrationFiles = new ArrayList<>();
         File folder = new File(dir);
-        Pattern versionPattern = Pattern.compile("^[VB](\\d+(?:_\\d+)*)(_{1,2}.*)?\\.sql$");
 
         if (!folder.exists() || !folder.isDirectory()) {
-            System.err.println("Invalid directory: " + dir);
+            logger.error("Invalid directory: {}", dir);
             return migrationFiles;
         }
 
         File[] files = folder.listFiles((f, name) -> name.endsWith(".sql"));
-
-        if (files == null) {
-            System.err.println("No SQL files found in directory: " + dir);
+        if (files == null || files.length == 0) {
+            logger.warn("No SQL files found in directory: {}", dir);
             return migrationFiles;
         }
 
         for (File file : files) {
             String fileName = file.getName();
-            Matcher matcher = versionPattern.matcher(fileName);
-            System.out.println(fileName + " " + matcher.matches());
+            Matcher matcher = VERSION_PATTERN.matcher(fileName);
+            logger.debug("Checking file: {} - Matches: {}", fileName, matcher.matches());
 
             if (matcher.matches()) {
                 try {
@@ -45,21 +49,25 @@ public class MigrationFileReader {
                     // Compare file version with the last database version
                     if (compareVersions(fileVersion, lastDbVersion) > 0) {
                         migrationFiles.add(file);
+                        logger.info("File added for migration: {}", fileName);
                     }
-                }catch(IndexOutOfBoundsException ex){
-                    System.out.println(fileName + " has no proper version");
+                } catch (IndexOutOfBoundsException ex) {
+                    logger.error("File {} has no proper version. Error: {}", fileName, ex.getMessage());
                 }
+            } else {
+                logger.debug("File {} does not match the version pattern.", fileName);
             }
         }
 
         // Sort migration files by version
         migrationFiles.sort(Comparator.comparing(file -> extractVersion(file.getName())));
+        logger.info("Total migration files to apply: {}", migrationFiles.size());
 
         return migrationFiles;
     }
 
     /**
-     * Compares two version strings.
+     * Compares two version strings to determine their order.
      *
      * @param version1 The first version string.
      * @param version2 The second version string.
@@ -83,19 +91,19 @@ public class MigrationFileReader {
     }
 
     /**
-     * Extracts the version from the file name.
+     * Extracts the version from a file name using the version pattern.
      *
-     * @param fileName The name of the file.
-     * @return The extracted version string.
+     * @param fileName The name of the file to extract the version from.
+     * @return The extracted version as a string, or "0" if no valid version is found.
      */
     private static String extractVersion(String fileName) {
-        Pattern versionPattern = Pattern.compile("^[VB](\\d+(?:_\\d+)*)(__.*)?\\.sql$");
-        Matcher matcher = versionPattern.matcher(fileName);
+        Matcher matcher = VERSION_PATTERN.matcher(fileName);
 
         if (matcher.matches()) {
             return matcher.group(1);
         }
 
+        logger.warn("Could not extract version from file: {}", fileName);
         return "0";
     }
 }
