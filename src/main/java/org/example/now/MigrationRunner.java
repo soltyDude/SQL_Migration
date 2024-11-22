@@ -29,7 +29,7 @@ public class MigrationRunner {
                 logger.error("Invalid directory: {}", dir);
                 return;
             }
-
+//
             // Find the latest version in the database
             String lastDbVersion = getLastDbVersion(conn);
 

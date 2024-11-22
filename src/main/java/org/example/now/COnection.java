@@ -47,7 +47,7 @@ public class COnection {
             System.out.println("Version " + version + " already applied. Skipping: " + scriptName);
             return false;
         }
-
+//
         Scanner s = new Scanner(in);
         s.useDelimiter("(;(\r)?\n)|(--\n)");
         Statement st = null;

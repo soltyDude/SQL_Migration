@@ -13,7 +13,6 @@ public class App {
 
         //String migrationFilePath = "data/V0_0_01__aboba.sql";
         //RollbackGenerator.generateRollback(migrationFilePath);
-
-
+        //
     }
 }
