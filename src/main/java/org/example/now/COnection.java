@@ -36,18 +36,19 @@ public class COnection {
 
     //надо чтобы он откатывал первый стэйтмент если на втором ошибка или не исполнял его
     //возможно чтобы он весь файл исполнял одной кверей
-    public static boolean importSQL(Connection conn, InputStream in, String scriptName) throws SQLException {
+    public static boolean executeSQL(Connection conn, InputStream in, String scriptName) throws SQLException {
+        /*
         String version = extractVersionFromFileName(scriptName);
         if (version == null) {
             System.err.println("Invalid script name format. Skipping: " + scriptName);
             return false;
         }
-
+        //не нужно
         if (isVersionAlreadyApplied(conn, version)) {
             System.out.println("Version " + version + " already applied. Skipping: " + scriptName);
             return false;
         }
-//
+        */
         Scanner s = new Scanner(in);
         s.useDelimiter("(;(\r)?\n)|(--\n)");
         Statement st = null;
@@ -83,11 +84,13 @@ public class COnection {
         } finally {
             executionTime = (int) (System.currentTimeMillis() - startTime);
             if (st != null) st.close();
-            logExecution(conn, version, scriptName, executionTime, success);
+            logExecution(conn, extractVersionFromFileName(scriptName), scriptName, executionTime, success);
         }
         return success;
     }
 
+    //не нужно
+    /*
     private static boolean isVersionAlreadyApplied(Connection conn, String version) throws SQLException {
         // Query to check if the version exists and was successfully applied
         String selectCOUNT = "SELECT COUNT(*) FROM flyway_schema_history WHERE version = ? AND success = TRUE";
@@ -99,7 +102,7 @@ public class COnection {
             }
         }
     }
-
+*/
     private static String extractVersionFromFileName(String scriptName) {
         // Match the version pattern
         String[] parts = scriptName.split("__", 2);

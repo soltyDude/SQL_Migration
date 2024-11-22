@@ -47,7 +47,7 @@ public class MigrationRunner {
                 logger.info("Applying migration: {}", scriptName);
 
                 try (FileInputStream in = new FileInputStream(file)) {
-                    boolean success = importSQL(conn, in, scriptName);
+                    boolean success = executeSQL(conn, in, scriptName);
                     if (success) {
                         logger.info("Migration applied successfully: {}", scriptName);
                     } else {
