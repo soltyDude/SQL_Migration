@@ -1,6 +1,5 @@
 package org.example;
 
-import org.example.database.MigrationLock;
 
 public class MigrationLockTest {
     public static void main(String[] args) throws InterruptedException {
