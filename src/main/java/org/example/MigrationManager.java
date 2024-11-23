@@ -15,6 +15,12 @@ public class MigrationManager {
 
     private static final Logger logger = LoggerFactory.getLogger(MigrationManager.class); // Logger instance
 
+
+    /**
+     * Applies all new migration files found in the specified directory.
+     *
+     * @param dir the directory containing migration files
+     */
     public static void migrateFiles(String dir) {
 
         try (Connection conn = ConnectionManager.getConnection()) {
@@ -89,11 +95,20 @@ public class MigrationManager {
         }
     }
 
+    /**
+     * Applies all new migrations found in the default directory (`src/main/resources`).
+     */
     public static void migrateFiles(){
         migrateFiles("src/main/resources");
     }
 
 
+    /**
+     * Applies rollback files to revert migrations up to the specified version.
+     *
+     * @param dir     the directory containing rollback files
+     * @param vertion the target version to rollback to
+     */
     public static void migrateRollbacks(String dir, String vertion) {
         try (Connection conn = ConnectionManager.getConnection()) {
             logger.info("Connected to the database.");
@@ -167,6 +182,12 @@ public class MigrationManager {
             logger.error("Migration failed: {}", e.getMessage(), e);
         }
     }
+
+    /**
+     * Applies rollbacks using files in the default directory (`src/main/resources`).
+     *
+     * @param vertion the target version to rollback to
+     */
     public static void migrateRollbacks(String vertion){
         migrateRollbacks("src/main/resources", vertion);
     }
