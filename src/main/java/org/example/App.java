@@ -8,7 +8,8 @@ public class App {
     public static void main(String[] args) {
         //MigrationLock.ensureLockTableExists();
 
-        MigrationManager.migrateFiles("data");
+        //MigrationManager.migrateFiles("data");
+        MigrationManager.migrateFiles("data", "0_0_2");
         //MigrationExecutor.clean();
 
         //String migrationFilePath = "data/V0_0_01__aboba.sql";

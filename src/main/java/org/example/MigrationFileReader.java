@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 public class MigrationFileReader {
 
     private static final Logger logger = LoggerFactory.getLogger(MigrationFileReader.class); // Logger instance
-    private static final Pattern VERSION_PATTERN = Pattern.compile("^[VB](\\d+(?:_\\d+)*)(_{1,2}.*)?\\.sql$");
+    private static final Pattern VERSION_PATTERN = Pattern.compile("^[VBR](\\d+(?:_\\d+)*)(_{1,2}.*)?\\.sql$");
 //
     /**
      * Finds all migration files in the specified directory that have not yet been applied to the database.
@@ -22,7 +22,7 @@ public class MigrationFileReader {
      * @param lastDbVersion The last applied migration version from the database.
      * @return A sorted list of migration files with versions higher than the last database version.
      */
-    public static List<File> findMigrations(String dir, String lastDbVersion) {
+    public static List<File> findMigrations(String dir, String lastDbVersion, char startChar) {
         List<File> migrationFiles = new ArrayList<>();
         File folder = new File(dir);
 
@@ -39,6 +39,13 @@ public class MigrationFileReader {
 
         for (File file : files) {
             String fileName = file.getName();
+
+            // Check if the file starts with the specified character
+            if (fileName.charAt(0) != startChar) {
+                logger.debug("File {} does not start with character '{}'.", fileName, startChar);
+                continue;
+            }
+
             Matcher matcher = VERSION_PATTERN.matcher(fileName);
             logger.debug("Checking file: {} - Matches: {}", fileName, matcher.matches());
 

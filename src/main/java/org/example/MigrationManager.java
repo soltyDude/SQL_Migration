@@ -28,12 +28,13 @@ public class MigrationManager {
                 logger.error("Invalid directory: {}", dir);
                 return;
             }
-//
+
             // Find the latest version in the database
+
             String lastDbVersion = getLastDbVersion(conn);
 
             // Get a list of unpushed SQL files
-            List<File> unPushedFiles = MigrationFileReader.findMigrations(dir, lastDbVersion);
+            List<File> unPushedFiles = MigrationFileReader.findMigrations(dir, lastDbVersion, 'V');
 
             if (unPushedFiles.isEmpty()) {
                 logger.info("No new migrations to apply.");
@@ -50,6 +51,80 @@ public class MigrationManager {
                 conn.setAutoCommit(false); // Start transaction
 
                 for (File file : unPushedFiles) {
+                    String scriptName = file.getName();
+                    logger.info("Applying migration: {}", scriptName);
+
+                    try (FileInputStream in = new FileInputStream(file)) {
+                        boolean success = MigrationExecutor.executeSQL(conn, in, scriptName);
+                        if (success) {
+                            logger.info("Migration applied successfully: {}", scriptName);
+                        } else {
+                            throw new Exception("Migration failed: " + scriptName);
+                        }
+                    }
+                }
+
+                conn.commit(); // Commit all migrations if everything succeeds
+                logger.info("All migrations applied successfully.");
+
+            } catch (Exception e) {
+                try {
+                    conn.rollback(); // Rollback if any migration fails
+                    logger.error("Migration process failed. All changes have been rolled back.", e);
+                } catch (SQLException rollbackEx) {
+                    logger.error("Failed to rollback transaction.", rollbackEx);
+                }
+            } finally {
+                try {
+                    conn.setAutoCommit(true); // Restore default auto-commit behavior
+                } catch (SQLException autoCommitEx) {
+                    logger.error("Failed to reset auto-commit.", autoCommitEx);
+                }
+            }
+            MigrationLock.releaseLock();
+            logger.info("Migration process completed.");
+        } catch (Exception e) {
+            logger.error("Migration failed: {}", e.getMessage(), e);
+        }
+    }
+
+    public static void migrateFiles(String dir, String vetion) {
+        try (Connection conn = ConnectionManager.getConnection()) {
+            logger.info("Connected to the database.");
+
+            // Initialize the database schema history table if it doesn't exist
+            _init_();
+            MigrationLock.ensureLockTableExists();
+
+            File folder = new File(dir);
+            if (!folder.exists() || !folder.isDirectory()) {
+                logger.error("Invalid directory: {}", dir);
+                return;
+            }
+
+            // Find the latest version in the database
+
+
+            // Get a list of unpushed SQL files
+            List<File> unPushedFiles = MigrationFileReader.findMigrations(dir, vetion, 'R');
+
+            if (unPushedFiles.isEmpty()) {
+                logger.info("No new migrations to apply.");
+                return;
+            }
+
+            logger.info("Truing to acquireLock");
+            while(!MigrationLock.acquireLock()){
+                logger.info("DB is locked, please wait so it would ba accessible");
+                Thread.sleep(30000);
+            }
+            // Migrate each file
+            try {
+                conn.setAutoCommit(false); // Start transaction
+
+                for (int i = unPushedFiles.size() - 1; i >= 0; i--) {
+                    File file = unPushedFiles.get(i);
+
                     String scriptName = file.getName();
                     logger.info("Applying migration: {}", scriptName);
 
@@ -122,11 +197,11 @@ public class MigrationManager {
 
             stmt.executeUpdate(createTableSQL);
             //log
-            System.out.println("Table 'flyway_schema_history' created or already exists.");
+            logger.info("Table 'flyway_schema_history' created or already exists.");
 
         } catch (SQLException e) {
             //log
-            System.err.println("Error creating 'flyway_schema_history': " + e.getMessage());
+            logger.error("Error creating 'flyway_schema_history': " + e.getMessage());
         }
     }
 }

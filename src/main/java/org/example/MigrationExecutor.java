@@ -1,5 +1,7 @@
 package org.example;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sqlite.SQLiteException;
 
 import java.io.InputStream;
@@ -7,6 +9,9 @@ import java.sql.*;
 import java.util.Scanner;
 
 public class MigrationExecutor {
+
+    private static final Logger logger = LoggerFactory.getLogger(MigrationExecutor.class);
+
     public static boolean executeSQL(Connection conn, InputStream in, String scriptName) throws SQLException {
         Scanner s = new Scanner(in);
         s.useDelimiter("(;(\r)?\n)|(--\n)");
@@ -28,9 +33,7 @@ public class MigrationExecutor {
                     try {
                         st.execute(line);
                     } catch (SQLiteException ex) {
-                        //logs
-                        System.out.println("sql query is not good");
-                        System.out.println(ex.getResultCode());
+                        logger.error("SQL query is not valid. Error code: {}", ex.getResultCode(), ex);
                         success = false;
                         break;
                     }
@@ -48,7 +51,6 @@ public class MigrationExecutor {
     }
 
     private static String extractVersionFromFileName(String scriptName) {
-        // Match the version pattern
         String[] parts = scriptName.split("__", 2);
         if (parts.length > 0) {
             String versionPart = parts[0];
@@ -58,15 +60,16 @@ public class MigrationExecutor {
         }
         return null; // Invalid file name format
     }
+
     private static void createDatabase() {
         String url = PropertiesUtils.getDbUrl();
 
         try (Connection conn = DriverManager.getConnection(url)) {
             if (conn != null) {
-                System.out.println("A new database has been created at: ");
+                logger.info("A new database has been created at URL: {}", url);
             }
         } catch (SQLException e) {
-            System.err.println("Error creating database: " + e.getMessage());
+            logger.error("Error creating database: {}", e.getMessage(), e);
         }
     }
 
@@ -85,15 +88,11 @@ public class MigrationExecutor {
             pstmt.setString(7, System.getProperty("user.name")); // installed_by (current user)
             pstmt.executeUpdate();
 
-            //log
-            System.out.println("Execution logged for script: " + scriptName);
+            logger.info("Execution logged for script: {}", scriptName);
         } catch (SQLException e) {
-            //log
-            System.err.println("Error logging execution: " + e.getMessage());
+            logger.error("Error logging execution for script {}: {}", scriptName, e.getMessage(), e);
         }
     }
-
-
 
     public static void clean() {
         String url = PropertiesUtils.getDbUrl();
@@ -101,7 +100,7 @@ public class MigrationExecutor {
         try (Connection conn = DriverManager.getConnection(url);
              Statement stmt = conn.createStatement()) {
 
-            System.out.println("Connected to the database. Starting cleanup...");
+            logger.info("Connected to the database. Starting cleanup...");
 
             // Fetch all table names in the database
             ResultSet rs = stmt.executeQuery(
@@ -111,15 +110,14 @@ public class MigrationExecutor {
             // Drop each table
             while (rs.next()) {
                 String tableName = rs.getString("name");
-                System.out.println("Dropping table: " + tableName);
+                logger.info("Dropping table: {}", tableName);
                 stmt.executeUpdate("DROP TABLE IF EXISTS " + tableName);
             }
 
-            System.out.println("All tables dropped successfully, including 'flyway_schema_history' if present.");
+            logger.info("All tables dropped successfully, including 'flyway_schema_history' if present.");
 
         } catch (Exception e) {
-            System.err.println("Error during cleanup: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error during cleanup: {}", e.getMessage(), e);
         }
     }
 }
