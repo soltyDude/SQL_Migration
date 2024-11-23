@@ -55,7 +55,7 @@ public class MigrationManager {
                     logger.info("Applying migration: {}", scriptName);
 
                     try (FileInputStream in = new FileInputStream(file)) {
-                        boolean success = MigrationExecutor.executeSQL(conn, in, scriptName);
+                        boolean success = MigrationExecutor.executeSQL(conn, in, scriptName, 'V');
                         if (success) {
                             logger.info("Migration applied successfully: {}", scriptName);
                         } else {
@@ -129,7 +129,7 @@ public class MigrationManager {
                     logger.info("Applying migration: {}", scriptName);
 
                     try (FileInputStream in = new FileInputStream(file)) {
-                        boolean success = MigrationExecutor.executeSQL(conn, in, scriptName);
+                        boolean success = MigrationExecutor.executeSQL(conn, in, scriptName, 'R');
                         if (success) {
                             logger.info("Migration applied successfully: {}", scriptName);
                         } else {

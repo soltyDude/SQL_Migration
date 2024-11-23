@@ -12,7 +12,7 @@ public class MigrationExecutor {
 
     private static final Logger logger = LoggerFactory.getLogger(MigrationExecutor.class);
 
-    public static boolean executeSQL(Connection conn, InputStream in, String scriptName) throws SQLException {
+    public static boolean executeSQL(Connection conn, InputStream in, String scriptName, char option) throws SQLException {
         Scanner s = new Scanner(in);
         s.useDelimiter("(;(\r)?\n)|(--\n)");
         Statement st = null;
@@ -45,7 +45,11 @@ public class MigrationExecutor {
         } finally {
             executionTime = (int) (System.currentTimeMillis() - startTime);
             if (st != null) st.close();
-            logExecution(conn, extractVersionFromFileName(scriptName), scriptName, executionTime, success);
+            if(option == 'V') {
+                logExecution(conn, extractVersionFromFileName(scriptName), scriptName, executionTime, success);
+            } else if (option == 'R') {
+                deleteVersion(conn, extractVersionFromFileName(scriptName));
+            }
         }
         return success;
     }
@@ -54,7 +58,7 @@ public class MigrationExecutor {
         String[] parts = scriptName.split("__", 2);
         if (parts.length > 0) {
             String versionPart = parts[0];
-            if (versionPart.startsWith("V") || versionPart.startsWith("B")) {
+            if (versionPart.startsWith("V") || versionPart.startsWith("R")) {
                 return versionPart.substring(1); // Remove the prefix (V or B)
             }
         }
@@ -91,6 +95,23 @@ public class MigrationExecutor {
             logger.info("Execution logged for script: {}", scriptName);
         } catch (SQLException e) {
             logger.error("Error logging execution for script {}: {}", scriptName, e.getMessage(), e);
+        }
+    }
+
+    private static void deleteVersion(Connection conn, String version) {
+        String deleteSQL = "DELETE FROM flyway_schema_history WHERE version = ?";
+
+        try (PreparedStatement pstmt = conn.prepareStatement(deleteSQL)) {
+            pstmt.setString(1, version); // Set the specific version to delete
+            int rowsAffected = pstmt.executeUpdate();
+
+            if (rowsAffected > 0) {
+                logger.info("Successfully deleted version: {}", version);
+            } else {
+                logger.warn("No entry found for version: {}", version);
+            }
+        } catch (SQLException e) {
+            logger.error("Error deleting version {}: {}", version, e.getMessage(), e);
         }
     }
 
