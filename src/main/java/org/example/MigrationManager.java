@@ -41,26 +41,43 @@ public class MigrationManager {
             }
 
             logger.info("Truing to acquireLock");
-            while(MigrationLock.acquireLock()){
+            while(!MigrationLock.acquireLock()){
                 logger.info("DB is locked, please wait so it would ba accessible");
                 Thread.sleep(30000);
             }
             // Migrate each file
-            for (File file : unPushedFiles) {
-                String scriptName = file.getName();
-                logger.info("Applying migration: {}", scriptName);
+            try {
+                conn.setAutoCommit(false); // Start transaction
 
-                try (FileInputStream in = new FileInputStream(file)) {
-                    boolean success = MigrationExecutor.executeSQL(conn, in, scriptName);
-                    if (success) {
-                        logger.info("Migration applied successfully: {}", scriptName);
-                    } else {
-                        logger.error("Migration failed: {}", scriptName);
-                        break; // Stop on failure
+                for (File file : unPushedFiles) {
+                    String scriptName = file.getName();
+                    logger.info("Applying migration: {}", scriptName);
+
+                    try (FileInputStream in = new FileInputStream(file)) {
+                        boolean success = MigrationExecutor.executeSQL(conn, in, scriptName);
+                        if (success) {
+                            logger.info("Migration applied successfully: {}", scriptName);
+                        } else {
+                            throw new Exception("Migration failed: " + scriptName);
+                        }
                     }
-                } catch (Exception e) {
-                    logger.error("Failed to apply migration: {}", scriptName, e);
-                    break; // Stop on failure
+                }
+
+                conn.commit(); // Commit all migrations if everything succeeds
+                logger.info("All migrations applied successfully.");
+
+            } catch (Exception e) {
+                try {
+                    conn.rollback(); // Rollback if any migration fails
+                    logger.error("Migration process failed. All changes have been rolled back.", e);
+                } catch (SQLException rollbackEx) {
+                    logger.error("Failed to rollback transaction.", rollbackEx);
+                }
+            } finally {
+                try {
+                    conn.setAutoCommit(true); // Restore default auto-commit behavior
+                } catch (SQLException autoCommitEx) {
+                    logger.error("Failed to reset auto-commit.", autoCommitEx);
                 }
             }
             MigrationLock.releaseLock();
