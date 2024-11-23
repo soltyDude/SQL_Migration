@@ -32,7 +32,9 @@ public class MigrationLock {
         }
     }
 
-    public static boolean acquireLock(String username) {
+    public static boolean acquireLock() {
+        String username = System.getProperty("user.name");
+
         String selectQuery = "SELECT is_locked, locked_at FROM migration_lock WHERE id = 1";
         String lockQuery = "INSERT INTO migration_lock (id, is_locked, locked_by, locked_at) " +
                 "VALUES (1, 1, ?, CURRENT_TIMESTAMP) " +

@@ -19,6 +19,7 @@ public class PropertiesUtils {
         try (FileInputStream fis = new FileInputStream(CONFIG_PATH)) {
             properties.load(fis);
             logger.info("Properties loaded successfully.");
+
         } catch (IOException e) {
             logger.error("Failed to load properties file.", e);
             throw new RuntimeException("Failed to load properties file.", e);

@@ -21,6 +21,7 @@ public class MigrationManager {
 
             // Initialize the database schema history table if it doesn't exist
             _init_();
+            MigrationLock.ensureLockTableExists();
 
             File folder = new File(dir);
             if (!folder.exists() || !folder.isDirectory()) {
@@ -39,6 +40,11 @@ public class MigrationManager {
                 return;
             }
 
+            logger.info("Truing to acquireLock");
+            while(MigrationLock.acquireLock()){
+                logger.info("DB is locked, please wait so it would ba accessible");
+                Thread.sleep(30000);
+            }
             // Migrate each file
             for (File file : unPushedFiles) {
                 String scriptName = file.getName();
@@ -57,7 +63,7 @@ public class MigrationManager {
                     break; // Stop on failure
                 }
             }
-
+            MigrationLock.releaseLock();
             logger.info("Migration process completed.");
         } catch (Exception e) {
             logger.error("Migration failed: {}", e.getMessage(), e);

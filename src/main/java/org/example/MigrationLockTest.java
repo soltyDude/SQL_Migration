@@ -7,8 +7,8 @@ public class MigrationLockTest {
         MigrationLock.ensureLockTableExists();
 
         // Create two threads simulating two users
-        Thread user1 = new Thread(() -> runMigration("User1"));
-        Thread user2 = new Thread(() -> runMigration("User2"));
+        Thread user1 = new Thread(() -> runMigration());
+        Thread user2 = new Thread(() -> runMigration());
 
 
         // Start the first thread immediately
@@ -32,9 +32,11 @@ public class MigrationLockTest {
         System.out.println("Test completed.");
     }
 
-    private static void runMigration(String username) {
+    private static void runMigration() {
+        String username = System.getProperty("user.name");
+
         System.out.println(username + " attempting to acquire lock...");
-        if (MigrationLock.acquireLock(username)) {
+        if (MigrationLock.acquireLock()) {
             try {
                 System.out.println(username + " acquired the lock. Running migration...");
                 // Simulate migration running
