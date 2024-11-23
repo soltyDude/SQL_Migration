@@ -16,6 +16,7 @@ public class MigrationManager {
     private static final Logger logger = LoggerFactory.getLogger(MigrationManager.class); // Logger instance
 
     public static void migrateFiles(String dir) {
+
         try (Connection conn = ConnectionManager.getConnection()) {
             logger.info("Connected to the database.");
 
@@ -88,7 +89,12 @@ public class MigrationManager {
         }
     }
 
-    public static void migrateFiles(String dir, String vetion) {
+    public static void migrateFiles(){
+        migrateFiles("src/main/resources");
+    }
+
+
+    public static void migrateRollbacks(String dir, String vertion) {
         try (Connection conn = ConnectionManager.getConnection()) {
             logger.info("Connected to the database.");
 
@@ -106,7 +112,7 @@ public class MigrationManager {
 
 
             // Get a list of unpushed SQL files
-            List<File> unPushedFiles = MigrationFileReader.findMigrations(dir, vetion, 'R');
+            List<File> unPushedFiles = MigrationFileReader.findMigrations(dir, vertion, 'R');
 
             if (unPushedFiles.isEmpty()) {
                 logger.info("No new migrations to apply.");
@@ -161,6 +167,10 @@ public class MigrationManager {
             logger.error("Migration failed: {}", e.getMessage(), e);
         }
     }
+    public static void migrateRollbacks(String vertion){
+        migrateRollbacks("src/main/resources", vertion);
+    }
+
 
     private static String getLastDbVersion(Connection conn) {
         //last succesfuly pushed migration
