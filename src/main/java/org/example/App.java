@@ -8,7 +8,7 @@ import org.example.Report.MigrationReportGenerator;
 //добавление в логи ошибок с скл хуёнёй
 public class App {
     public static void main(String[] args) {
-        MigrationReportGenerator.generateJsonReport("migration_report.json");
+        //MigrationReportGenerator.generateJsonReport("migration_report.json");
 
         //MigrationLock.ensureLockTableExists();
 
